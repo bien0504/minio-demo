@@ -1,0 +1,265 @@
+\documentclass{article}
+\usepackage[margin=1in]{geometry} % Set 1-inch margins on all sides
+\usepackage{graphicx} % To include images
+\usepackage{indentfirst}
+\usepackage{times} % Chọn font Time New Romans
+\usepackage[top=2cm, bottom=2cm, left=3.5cm, right=2.5cm]{geometry}
+\usepackage{scrextend}
+\changefontsizes{13pt}
+\begin{document}
+
+\title{MinIO}
+\author{Bien Nguyen Cong}
+\date{\today}
+
+\maketitle
+
+\section{Introduction}
+MinIO is an object storage solution that provides an Amazon Web Services S3-compatible API and supports all core S3 features. MinIO is built to deploy anywhere - public or private cloud, baremetal infrastructure, orchestrated environments, and edge infrastructure.
+
+\section{Architecture}
+\subsection{Bucket}
+A bucket corresponds to a data container. We can create multiple buckets to organize and manage data into different groups. Each bucket has a unique name and serves as a storage location for objects.
+\subsection{Object}
+An object is the actual data stored in MinIO. Each object has a unique name within a specific bucket and can be of any type of data, from text to images, videos, or any other type of binary data.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{image1.png}
+    \caption{Each bucket can contain multiple different objects, and each object belongs to only one bucket.}
+    \label{fig:image1}
+\end{figure}
+
+
+\subsection{KMS (Key Management Service)}
+A key management service used to manage and protect encryption keys used to safeguard data. KMS ensures that data stored in MinIO is encrypted and securely protected.
+
+\subsection{Metadata}
+Descriptive information about objects stored in MinIO. Metadata includes attributes such as object name, size, MIME type, creation time, modification time, and any other necessary information. Metadata is used for searching, retrieving, and managing objects in the storage system.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{image2.png}
+    \caption{MinIO Architecture}
+    \label{fig:image2}
+\end{figure}
+
+\section{Data sharding}
+
+\subsection{Random Data Sharding}
+Data is divided and distributed randomly across partitions. No specific field is used for data partitioning; instead, data is randomly fragmented to ensure even distribution and balance.
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item Even and random distribution of data across partitions.
+    \item Effective data fragmentation for unstructured or heterogeneous data.
+\end{itemize}
+
+\textbf{Limitations}:
+\begin{itemize}
+    \item Difficulty in executing ordered or predictable queries on data.
+\end{itemize}
+
+\subsection{Time-based Data Sharding}
+Data is partitioned based on its timestamp. For example, data can be partitioned into partitions based on the day or month it was generated.
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item Suitable for applications requiring data processing based on time.
+    \item Historical data management can be easily handled.
+\end{itemize}
+
+\textbf{Limitations}:
+\begin{itemize}
+    \item Difficulty in handling queries accessing multiple time ranges.
+\end{itemize}
+
+\subsection{Geographical Data Sharding}
+Data is divided based on its geographical location. For example, data can be partitioned based on country, region, or user IP address.
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item Suitable for applications needing data processing based on geographical location.
+    \item Data access performance can be optimized for specific geographic areas.
+\end{itemize}
+
+\textbf{Limitations}:
+\begin{itemize}
+    \item May lead to imbalance in data distribution if some geographical regions have more common data.
+\end{itemize}
+
+\subsection{Hash-based Data Sharding}
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{image3.png}
+    \caption{Data sharding with a hash function in MinIO}
+    \label{fig:image3}
+\end{figure}
+A hash function is used to convert data into hash values, and then data is partitioned based on these hash values.
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item Ensures even and random distribution of data across partitions.
+    \item Effective data fragmentation for different types of data.
+\end{itemize}
+
+\textbf{Limitations}:
+\begin{itemize}
+    \item Requires computational processing to calculate hash values, which can increase system overhead.
+\end{itemize}
+
+\subsection{Field-based Data Sharding}
+Data is distributed into buckets corresponding to the value of a field.
+
+\textbf{Advantages}:
+\begin{itemize}
+    \item Can optimize data access performance for specific queries.
+    \item Easy to implement and understand for structured data.
+\end{itemize}
+
+\textbf{Limitations}:
+\begin{itemize}
+    \item May lead to data concentration if a primary field is used and has some common values.
+    \item Careful consideration is needed to select the appropriate field for sharding.
+\end{itemize}
+After fragmentation, it's necessary to generate a checksum to ensure data integrity.
+\subsection{Data Integrity}
+\begin{itemize}
+    \item \textbf{Choose a Checksum Algorithm}:
+    \begin{itemize}
+         First, select a suitable checksum algorithm to use. One of the common algorithms is MD5, SHA-1, SHA-256, or CRC32. Each algorithm has its own characteristics regarding length and reliability of the checksum.
+    \end{itemize}
+    
+    \item \textbf{Compute Checksum for Each Partition}:
+    \begin{itemize}
+         Based on the data within each partition, we will compute the checksum for each partition by applying the chosen checksum algorithm. This can be done by reading the data from the partition and applying the checksum algorithm to generate the checksum value.
+    \end{itemize}
+    
+    \item \textbf{Store Checksum}:
+    \begin{itemize}
+         After computation, it's necessary to store the checksum value corresponding to each partition. Typically, the checksum value is stored along with the data or in a separate data table for easy verification of integrity later.
+    \end{itemize}
+    
+    \item \textbf{Verify Integrity}:
+    \begin{itemize}
+         When necessary, the computed checksum value can be used to verify the integrity of the data. By recomputing the checksum from the current data and comparing it with the stored checksum value, it can be determined whether the data has been altered or not.
+    \end{itemize}
+\end{itemize}
+
+
+
+\section{Configuration}
+The important factors to consider when configuring MinIO to ensure the performance, availability, and security of your object storage system include a range of technical and managerial aspects. Here are some key factors you should consider:\\
+\textbf{Number and Size of Partitions}:
+\begin{itemize}
+    \item \textbf {Number of Partitions:} Determine the number of partitions (or buckets) into which your data will be divided. This decision affects the distribution of data across the storage infrastructure and can impact performance, scalability, and fault tolerance.
+    \item \textbf {Size of Partitions:} Define the size of each partition based on factors such as the volume of data, storage capacity, and performance requirements. Balancing the size of partitions is crucial for optimizing storage utilization and avoiding issues like data skew or imbalance.
+\end{itemize}
+\textbf{Sharding Algorithm}:
+\begin{itemize}
+    \item \textbf {Selection}  Choose the appropriate sharding algorithm that best suits your use case and data distribution requirements. Common sharding algorithms include hash-based sharding, range-based sharding, and field-based sharding.
+    \item \textbf {Considerations} Consider factors such as data distribution uniformity, scalability, performance, and ease of implementation when selecting the sharding algorithm. Each algorithm has its strengths and weaknesses, and the choice depends on your specific needs.
+\end{itemize}
+\textbf{Sharding Strategy}:
+\begin{itemize}
+    \item \textbf {Random Sharding}: Divide data into partitions randomly, without any specific criteria. This strategy ensures even distribution of data but may not be suitable for all types of data or access patterns.
+    \item \textbf {Hash-based Sharding}: Apply a hash function to a unique identifier or attribute of each object to determine its partition. This strategy evenly distributes data and ensures consistent mapping but requires additional computational overhead for hashing.
+    \item \textbf {Field-based Sharding}:
+    Partition data based on the value of a specific field or attribute, such as a timestamp or geographic location. This strategy allows for optimized data access patterns but may lead to data skew if certain fields have uneven distributions.
+    \item \textbf {Considerations}:
+    Evaluate the pros and cons of each sharding strategy based on factors like data distribution characteristics, query patterns, and ease of implementation.
+\end{itemize}
+\textbf{Load Balancing}:
+\begin{itemize}
+    \item \textbf {Purpose}:
+     Implement load balancing mechanisms to evenly distribute workload and data across partitions or nodes within the MinIO cluster.
+    \item \textbf {Techniques}:
+    Use techniques such as dynamic partitioning, data rebalancing, and node monitoring to optimize resource utilization, improve performance, and ensure high availability.
+\end{itemize}
+\textbf{Error Data Management}:
+\begin{itemize}
+    \item \textbf {Fault Tolerance}:
+     Develop strategies for managing errors and handling corrupted or lost data to ensure data integrity and fault tolerance.
+    \item \textbf {Redundancy}:
+    Implement data redundancy mechanisms such as replication or erasure coding to protect against data loss due to hardware failures, network issues, or other unforeseen events.
+    \item \textbf {Monitoring and Recovery}:
+    Set up monitoring tools and automated recovery processes to detect and mitigate errors in real-time, minimizing downtime and data loss.
+    
+\end{itemize}
+\textbf{Access Control and Security Management}:
+\begin{itemize}
+    \item \textbf {Authentication}:
+    Configure authentication mechanisms such as access keys, secret keys, or integration with identity providers to control access to MinIO resources.
+    \item \textbf {Authorization}:
+   Define access policies and roles to restrict user permissions and ensure that only authorized users can access specific data or perform certain operations.
+    \item \textbf {Encryption}:
+    Enable encryption at rest and in transit to protect data confidentiality and integrity against unauthorized access or interception.
+
+    \item \textbf {Auditing}:
+     Implement auditing and logging mechanisms to track access events, monitor user activity, and ensure compliance with security policies and regulations.
+    
+\end{itemize}
+
+\section{Encryption}
+% \subsection{MinIO Server-Side Encryption (SSE)}
+
+MinIO Server-Side Encryption (SSE) protects objects as part of write operations, allowing clients to take advantage of server processing power to secure objects at the storage layer (encryption-at-rest). SSE also provides key functionality to regulatory and compliance requirements around secure locking and erasure.
+
+MinIO SSE uses the MinIO Key Encryption Service (KES) and an external Key Management Service (KMS) for performing secured cryptographic operations at scale. MinIO also supports client-managed key management, where the application takes full responsibility for creating and managing encryption keys for use with MinIO SSE.
+
+MinIO supports the following KMS as the central key store:
+\begin{itemize}
+    \item Hashicorp KeyVault
+    \item AWS SecretsManager
+    \item Google Cloud SecretManager
+    \item Azure Key Vault
+    \item Fortanix SDKMS
+    \item Thales Digital Identity and Security (formerly Gemalto)
+\end{itemize}
+
+MinIO SSE requires enabling Network Encryption (TLS).
+
+Supported Encryption Types:
+\begin{itemize}
+    \item SSE-KMS Recommended 
+    \item SSE-S3
+    \item SSE-C
+\end{itemize}
+
+\section{Compatibility}
+\subsection{AWS S3}
+    MinIO is indeed an open-source project designed to operate as self-hosted object storage software, however, it's designed to work with applications developed for AWS S3. This means that MinIO is built to provide APIs that are fully compatible with AWS S3, allowing applications using MinIO to easily transition from using AWS object storage to MinIO without needing to change source code or data structures.
+
+In this way, MinIO acts as an intermediary layer, providing your application with the ability to store and retrieve data but instead of directly using AWS S3, you can use MinIO as a self-hosted object storage solution, giving you more flexibility and control over your data without being tied to AWS or other cloud storage providers.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{image4.png}
+    \caption{MinIO with AWS}
+    \label{fig:image4}
+\end{figure}
+
+To integrate MinIO into your application, follow these steps:
+\begin{enumerate}
+\item Install MinIO SDK: MinIO provides SDKs for various popular programming languages such as Python, Java, JavaScript (Node.js), Go, .NET, and more. With these SDKs, developers can easily integrate MinIO into their applications using the provided application programming interfaces (APIs).
+\item Configure MinIO credentials: Set up credentials for the MinIO server (Access Key ID and Secret Access Key) to authenticate your application with the MinIO server. These login credentials are used to access MinIO's resources.
+\item Initialize MinIO client: Initialize the MinIO client within your application codebase. This client will allow your application to communicate with the MinIO server.
+\item Perform operations on MinIO: With the MinIO client initialized, you can perform various operations on your MinIO buckets and objects. These operations include uploading files, downloading files, listing objects, deleting objects, and more.
+\end{enumerate}
+\subsection{Kafka}
+MinIO can be made compatible with Kafka through the use of Kafka Connect connectors or by implementing custom solutions that integrate MinIO with Kafka.
+Kafka Connect Connectors: Kafka Connect is a framework for building and running connectors that move data into and out of Apache Kafka. MinIO provides Kafka Connect connectors that allow you to easily integrate MinIO with Kafka. These connectors can be configured to stream data from MinIO into Kafka topics or vice versa.
+Custom Solutions: Alternatively, you can implement custom solutions to integrate MinIO with Kafka. This can be done by writing Kafka producers and consumers that interact with MinIO's APIs to publish data to Kafka topics or consume data from Kafka topics and store it in MinIO.
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{image5.png}
+    \caption{MinIO with Kafka}
+    \label{fig:image5}
+\end{figure}
+\subsection{Docker}
+We also can deploy a Single-Node Single-Drive MinIO server onto Docker for development and evaluation of MinIO Object Storage
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{image6.png}
+    \caption{MinIO with Docker}
+    \label{fig:image6}
+\end{figure}
+\end{document}
